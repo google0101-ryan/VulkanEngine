@@ -37,9 +37,10 @@ void RenderFrontend::InitFrontend(bool fullscreen)
 
 void RenderFrontend::DrawView()
 {
-	static auto startTime = std::chrono::high_resolution_clock::now();
-	auto currentTime = std::chrono::high_resolution_clock::now();
-    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+	static auto startTime = std::chrono::high_resolution_clock::now(); 
+	auto curTime = std::chrono::high_resolution_clock::now();
+
+	auto time = std::chrono::duration<float, std::chrono::seconds::period>(curTime - startTime).count();
 
 	// Check for exit commands from the user, as an easy out
 	glfwPollEvents();
@@ -49,12 +50,18 @@ void RenderFrontend::DrawView()
 	
 	DrawUniformInfo info = {};
 	
-	// TODO: Seperate the model matrix. It should be owned by the mesh being rendered. We'll batch them up then bind them one at a time
 	glm::mat4 view = glm::lookAt(glm::vec3(2.0f), glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 	info.view = view;
 	info.proj = glm::perspective(glm::radians(45.0f), WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10.0f);
 	info.proj[1][1] *= -1;
 	backend.SubmitCommand(DRAW_UPDATE_UNIFORM, &info);
+
+	defaultQuad.modelTransform = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+
+	backend.SubmitCommand(DRAW_SUBMIT_GEOMETRY, (void*)&defaultQuad);
+
+	defaultQuad.modelTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
+	defaultQuad.modelTransform = glm::rotate(defaultQuad.modelTransform, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	backend.SubmitCommand(DRAW_SUBMIT_GEOMETRY, (void*)&defaultQuad);
 

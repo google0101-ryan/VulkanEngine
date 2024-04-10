@@ -26,7 +26,7 @@ public:
 	void SetupViewportAndScissor(VkExtent2D offset, VkExtent2D size);
 	void BindVertexBuffer(VkBuffer buffer, size_t offset);
 	void BindIndexBuffer(VkBuffer buffer, size_t offset);
-	void BindDescriptorSet(VkDescriptorSet set);
+	void BindDescriptorSet(VkDescriptorSet set, uint32_t offset = 0);
 	void Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance);
 	void DrawIndexed(int indices, int instanceCount, int startOffs, int indexOffs, int firstInstance);
 	void EndFrame();
@@ -35,6 +35,7 @@ public:
 private:
 	VkCommandPool cmdPool;
 	VkCommandBuffer buffer;
+	uint32_t descriptorOffset;
 };
 
 void DoBufferCopy(Buffer& dst, Buffer& src, uint32_t offset = 0);

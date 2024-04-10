@@ -99,9 +99,10 @@ void Vulkan::CommandBuffer::BindIndexBuffer(VkBuffer buffer, size_t offset)
 	vkCmdBindIndexBuffer(this->buffer, buffer, offset, VK_INDEX_TYPE_UINT16);
 }
 
-void Vulkan::CommandBuffer::BindDescriptorSet(VkDescriptorSet set)
+void Vulkan::CommandBuffer::BindDescriptorSet(VkDescriptorSet set, uint32_t offset)
 {
-	vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, backendInfo.pipeline.layout, 0, 1, &set, 0, NULL);
+	descriptorOffset = offset;
+	vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, backendInfo.pipeline.layout, 0, 1, &set, 1, &descriptorOffset);
 }
 
 void Vulkan::CommandBuffer::Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance)

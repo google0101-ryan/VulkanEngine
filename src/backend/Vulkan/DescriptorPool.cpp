@@ -15,6 +15,9 @@ Vulkan::DescriptorPoolBuilder &Vulkan::DescriptorPoolBuilder::AddSize(Descriptor
 	case DESCRIPTOR_POOL_UBO:
 		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		break;
+	case DESCRIPTOR_POOL_UBO_DYNAMIC:
+		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		break;
 	}
 	poolSize.descriptorCount = count;
 

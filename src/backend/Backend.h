@@ -51,11 +51,11 @@ private:
 	class BackendModel
 	{
 	public:
-		cacheHandle_t vertexHandle, indexHandle;
-		RenderModel* model;
+		cacheHandle_t vertexHandle, indexHandle, uniformHandle;
+		RenderModel model;
 
-		renderTriangle_t* GetData() {return model->GetData();}
-		size_t GetSize() {return model->GetSize();}
+		renderTriangle_t* GetData() {return model.GetData();}
+		size_t GetSize() {return model.GetSize();}
 	};
 
 	uint32_t frame = 0;

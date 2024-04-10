@@ -17,6 +17,7 @@
 #include <geometry/Model.h>
 #include <frontend/frontend.h>
 #include <glm/gtc/matrix_transform.hpp>
+#include <glm/gtc/type_ptr.hpp>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
@@ -118,7 +119,7 @@ void RenderBackend::SubmitCommand(DrawCommands cmd, void *data)
 	case DRAW_SUBMIT_GEOMETRY:
 	{
 		BackendModel model;
-		model.model = (RenderModel*)data;
+		model.model = *(RenderModel*)data;
 		models.push_back(model);
 		break;
 	}
@@ -163,7 +164,7 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 	backendInfo.pipeline = Vulkan::PipelineBuilder()
 		.AttachShader(Vulkan::SHADER_VERTEX, backendInfo.colorShader.vertexShader)
 		.AttachShader(Vulkan::SHADER_FRAGMENT, backendInfo.colorShader.fragmentShader)
-		.AddDescriptorLayout(Vulkan::ShaderType::SHADER_VERTEX, Vulkan::DescriptorType::DESCRIPTOR_UBO)
+		.AddDescriptorLayout(Vulkan::ShaderType::SHADER_VERTEX, Vulkan::DescriptorType::DESCRIPTOR_UBO_DYNAMIC)
 		.SetupDynamicState()
 		.SetupVertexInput(sizeof(DrawVert), 0)
 		.AddAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(DrawVert, position))
@@ -200,30 +201,31 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 	backendInfo.uniformBuffers.resize(MAX_FRAME_DATA);
 	for (int i = 0; i < MAX_FRAME_DATA; i++)
 	{
-		backendInfo.uniformBuffers[i].Create(BUFFERUSAGE_UNIFORM, sizeof(DrawUniformInfo));
+		backendInfo.uniformBuffers[i].Create(BUFFERUSAGE_UNIFORM);
 	}
 
 	backendInfo.pool = Vulkan::DescriptorPoolBuilder()
-						.AddSize(Vulkan::DescriptorPoolType::DESCRIPTOR_POOL_UBO,
+						.AddSize(Vulkan::DescriptorPoolType::DESCRIPTOR_POOL_UBO_DYNAMIC,
 								MAX_FRAME_DATA)
 						.SetMaxSize(MAX_FRAME_DATA)
 						.Build();
 	
 	backendInfo.descriptorSets = backendInfo.pool.AllocSets(backendInfo.pipeline.setConstants, MAX_FRAME_DATA);
 
+	// TODO: Maybe wrap descriptor writing in a function?
 	for (int i = 0; i < MAX_FRAME_DATA; i++)
 	{
 		VkDescriptorBufferInfo bufInfo = {};
 		bufInfo.buffer = backendInfo.uniformBuffers[i].GetBuffer();
 		bufInfo.offset = 0;
-		bufInfo.range = VK_WHOLE_SIZE;
+		bufInfo.range = sizeof(curUniformInfo);
 
 		VkWriteDescriptorSet descWrite = {};
 		descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
 		descWrite.dstSet = backendInfo.descriptorSets[i];
 		descWrite.dstBinding = 0;
 		descWrite.dstArrayElement = 0;
-		descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 		descWrite.descriptorCount = 1;
 		descWrite.pBufferInfo = &bufInfo;
 		
@@ -271,14 +273,6 @@ void RenderBackend::DrawView()
 {
 	uint32_t index = frame % MAX_FRAME_DATA;
 
-	if (!startTime.time_since_epoch().count())
-		startTime = std::chrono::high_resolution_clock::now(); 
-	auto curTime = std::chrono::high_resolution_clock::now();
-
-	auto time = std::chrono::duration<float, std::chrono::seconds::period>(curTime - startTime).count();
-
-	curUniformInfo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
 	// Make sure previous frame is done
 	vkWaitForFences(backendInfo.device, 1, &backendInfo.inFlightFences[index], VK_TRUE, UINT64_MAX);
 	vkResetFences(backendInfo.device, 1, &backendInfo.inFlightFences[index]);
@@ -289,39 +283,44 @@ void RenderBackend::DrawView()
 	// Reset all allocations in the buffer
 	backendInfo.vertexStagingBuffer.BeginFrame();
 	backendInfo.indexStagingBuffer.BeginFrame();
+	backendInfo.uniformBuffers[index].BeginFrame();
 
 	for (auto& model : models)
 	{
+		curUniformInfo.model = model.model.modelTransform;
+
 		model.vertexHandle = backendInfo.vertexStagingBuffer.Alloc(model.GetData()->verts, model.GetSize());
 		model.indexHandle = backendInfo.indexStagingBuffer.Alloc(model.GetData()->indices, model.GetData()->indexCount * sizeof(uint16_t));
+		model.uniformHandle = backendInfo.uniformBuffers[index].Alloc((void*)&curUniformInfo, sizeof(curUniformInfo));
 	}
 
 	Vulkan::DoBufferCopy(backendInfo.vertexBuffer, backendInfo.vertexStagingBuffer);
 	Vulkan::DoBufferCopy(backendInfo.indexBuffer, backendInfo.indexStagingBuffer);
 
-	backendInfo.uniformBuffers[index].CopyData((void*)&curUniformInfo, sizeof(curUniformInfo));
-
 	auto& cmdBuf = backendInfo.renderCmdBuffers[index];
+
+	cmdBuf->BeginFrame();
+	cmdBuf->BeginRenderPass(backendInfo.renderPass, backendInfo.swapChainFramebuffers[imageIndex], backendInfo.swapChainExtent);
+	cmdBuf->BindPipeline(backendInfo.pipeline.pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+	cmdBuf->SetupViewportAndScissor({0, 0}, backendInfo.swapChainExtent);	
 	
 	for (auto& model : models)
 	{
 		cacheHandle_t vertexHandle = model.vertexHandle;
 		cacheHandle_t indexHandle = model.indexHandle;
+		cacheHandle_t uniformHandle = model.uniformHandle;
 
 		size_t vtxOffset = (vertexHandle >> 24) & 0x1ffffff;
 		size_t idxOffset = (indexHandle >> 24) & 0x1ffffff;
+		size_t unifOffset = (uniformHandle >> 24) & 0x1ffffff;
 
-		cmdBuf->BeginFrame();
-		cmdBuf->BeginRenderPass(backendInfo.renderPass, backendInfo.swapChainFramebuffers[imageIndex], backendInfo.swapChainExtent);
-		cmdBuf->BindPipeline(backendInfo.pipeline.pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
-		cmdBuf->SetupViewportAndScissor({0, 0}, backendInfo.swapChainExtent);
 		cmdBuf->BindVertexBuffer(backendInfo.vertexBuffer.GetBuffer(), vtxOffset);
 		cmdBuf->BindIndexBuffer(backendInfo.indexBuffer.GetBuffer(), idxOffset);
-		cmdBuf->BindDescriptorSet(backendInfo.descriptorSets[index]);
+		cmdBuf->BindDescriptorSet(backendInfo.descriptorSets[index], unifOffset);
 		cmdBuf->DrawIndexed(model.GetData()->indexCount, 1, 0, 0, 0);
-		cmdBuf->EndFrame();
 	}
-
+	
+	cmdBuf->EndFrame();
 	cmdBuf->Submit(backendInfo.graphicsQueue, backendInfo.imageAvailSemas[index], backendInfo.renderFinishedSemas[index], backendInfo.inFlightFences[index]);
 
 	VkPresentInfoKHR presentInfo = {};

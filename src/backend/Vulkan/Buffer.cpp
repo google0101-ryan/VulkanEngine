@@ -68,8 +68,13 @@ void Vulkan::Buffer::CopyData(void* data, int size, int offset)
 	vmaUnmapMemory(allocator, allocation);
 }
 
+#define __ALIGN_MASK(x,mask)    (((x)+(mask))&~(mask))
+#define ALIGN(x,a)              __ALIGN_MASK(x,(typeof(x))(a)-1)
+
 cacheHandle_t Vulkan::Buffer::Alloc(void *data, int size)
 {
+	// Align the size to 256 bytes
+	size = ALIGN(size, 256);
 	size_t offset = usedBytes;
 	usedBytes += size;
 

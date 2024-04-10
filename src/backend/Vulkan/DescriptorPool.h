@@ -10,7 +10,8 @@ class Buffer;
 
 enum DescriptorPoolType
 {
-	DESCRIPTOR_POOL_UBO
+	DESCRIPTOR_POOL_UBO,
+	DESCRIPTOR_POOL_UBO_DYNAMIC
 };
 
 class DescriptorPool

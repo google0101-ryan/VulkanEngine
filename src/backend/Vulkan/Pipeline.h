@@ -13,7 +13,8 @@ enum ShaderType
 
 enum DescriptorType
 {
-	DESCRIPTOR_UBO
+	DESCRIPTOR_UBO,
+	DESCRIPTOR_UBO_DYNAMIC
 };
 
 class PipelineBuilder

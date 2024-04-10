@@ -1,6 +1,7 @@
 #pragma once
 
 #include "DrawVert.h"
+#include <glm/glm.hpp>
 
 class RenderModel
 {
@@ -12,4 +13,6 @@ public:
 
 	renderTriangle_t* GetData() {return tris;}
 	size_t GetSize() {return tris->vertCount * sizeof(DrawVert);}
+	
+	glm::mat4 modelTransform;
 };

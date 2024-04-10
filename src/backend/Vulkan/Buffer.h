@@ -19,7 +19,7 @@ namespace Vulkan
 class Buffer
 {
 public:
-	void Create(BufferUsage usage, size_t size = 65536);
+	void Create(BufferUsage usage, size_t size = 31*1024*1024);
 	void Destroy();
 
 	void CopyData(void* data, int size, int offset = 0);

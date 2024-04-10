@@ -38,7 +38,7 @@ make_directory(${CMAKE_CURRENT_BINARY_DIR}/base/shaders)
 foreach(SHADER IN LISTS SHADERS)
 	get_filename_component(FILENAME ${SHADER} NAME)
 	add_custom_command(TARGET VulkanEngine POST_BUILD
-		COMMAND ${CMAKE_COMMAND} -E copy ${SHADER}.spv ${CMAKE_BINARY_DIR}/base/shaders/${FILENAME}.spv
+		COMMAND ${CMAKE_COMMAND} -E rename ${SHADER}.spv ${CMAKE_BINARY_DIR}/base/shaders/${FILENAME}.spv
 	)
 endforeach()
 

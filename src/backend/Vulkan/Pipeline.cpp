@@ -19,6 +19,9 @@ PipelineBuilder &PipelineBuilder::AddDescriptorLayout(ShaderType usage, Descript
 	case DESCRIPTOR_UBO:
 		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
 		break;
+	case DESCRIPTOR_UBO_DYNAMIC:
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
+		break;
 	}
 
 	switch (usage)
