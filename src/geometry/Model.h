@@ -8,6 +8,8 @@ private:
 	renderTriangle_t* tris;
 public:
 	void MakeDefaultTriangle();
-	void* GetData() {return (void*)tris;}
+	void MakeDefaultQuad();
+
+	renderTriangle_t* GetData() {return tris;}
 	size_t GetSize() {return tris->vertCount * sizeof(DrawVert);}
 };

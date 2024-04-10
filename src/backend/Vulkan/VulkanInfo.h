@@ -5,6 +5,7 @@
 #include <vector>
 #include <backend/Vulkan/CommandBuffer.h>
 #include <backend/Vulkan/Buffer.h>
+#include <backend/Vulkan/DescriptorPool.h>
 
 static constexpr int MAX_FRAME_DATA = 2;
 
@@ -17,6 +18,7 @@ struct pipeline_t
 {
 	VkPipelineLayout layout;
 	VkPipeline pipeline;
+	std::vector<VkDescriptorSetLayout> setConstants;
 };
 
 struct VulkanBackendInfo
@@ -40,7 +42,10 @@ struct VulkanBackendInfo
 	std::vector<Vulkan::CommandBuffer*> renderCmdBuffers;
 	std::vector<VkSemaphore> imageAvailSemas, renderFinishedSemas;
 	std::vector<VkFence> inFlightFences;
-	Vulkan::Buffer vertexBuffer, stagingBuffer;
+	Vulkan::Buffer vertexBuffer, indexBuffer, vertexStagingBuffer, indexStagingBuffer;
+	std::vector<Vulkan::Buffer> uniformBuffers;
+	Vulkan::DescriptorPool pool;
+	std::vector<VkDescriptorSet> descriptorSets;
 };
 
 extern VulkanBackendInfo backendInfo;

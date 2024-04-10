@@ -94,9 +94,24 @@ void Vulkan::CommandBuffer::BindVertexBuffer(VkBuffer buffer, size_t offset)
 	vkCmdBindVertexBuffers(this->buffer, 0, 1, &buffer, &offset);
 }
 
+void Vulkan::CommandBuffer::BindIndexBuffer(VkBuffer buffer, size_t offset)
+{
+	vkCmdBindIndexBuffer(this->buffer, buffer, offset, VK_INDEX_TYPE_UINT16);
+}
+
+void Vulkan::CommandBuffer::BindDescriptorSet(VkDescriptorSet set)
+{
+	vkCmdBindDescriptorSets(buffer, VK_PIPELINE_BIND_POINT_GRAPHICS, backendInfo.pipeline.layout, 0, 1, &set, 0, NULL);
+}
+
 void Vulkan::CommandBuffer::Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance)
 {
 	vkCmdDraw(buffer, vertexCount, instanceCount, firstVertex, firstInstance);
+}
+
+void Vulkan::CommandBuffer::DrawIndexed(int indices, int instanceCount, int startOffs, int indexOffs, int firstInstance)
+{
+	vkCmdDrawIndexed(buffer, indices, instanceCount, startOffs, indexOffs, firstInstance);
 }
 
 void Vulkan::CommandBuffer::EndFrame()
@@ -126,7 +141,7 @@ void Vulkan::CommandBuffer::Submit(VkQueue queue, VkSemaphore waitSemaphore, VkS
 		throw std::runtime_error("Failed to submit command buffer");
 }
 
-void Vulkan::DoBufferCopy(Buffer &dst, Buffer &src)
+void Vulkan::DoBufferCopy(Buffer &dst, Buffer &src, uint32_t offset)
 {
 	VkCommandPoolCreateInfo poolInfo = {};
 	VkCommandPool cmdPool;
@@ -153,7 +168,7 @@ void Vulkan::DoBufferCopy(Buffer &dst, Buffer &src)
 
 	VkBufferCopy copyRegion{};
 	copyRegion.srcOffset = 0; // Optional
-	copyRegion.dstOffset = 0; // Optional
+	copyRegion.dstOffset = offset; // Optional
 	copyRegion.size = 65536;
 	vkCmdCopyBuffer(commandBuffer, src.GetBuffer(), dst.GetBuffer(), 1, &copyRegion);
 

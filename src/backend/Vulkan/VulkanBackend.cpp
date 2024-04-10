@@ -3,6 +3,7 @@
 #include <stdlib.h>
 #include <stdexcept>
 #include <cassert>
+#include <chrono>
 
 #include <backend/Vulkan/VulkanInfo.h>
 #include <backend/Vulkan/VulkanInstance.h>
@@ -12,15 +13,15 @@
 #include <backend/Vulkan/Pipeline.h>
 #include <backend/Vulkan/RenderPass.h>
 #include <backend/Vulkan/Framebuffer.h>
+#include <backend/Vulkan/DescriptorPool.h>
 #include <geometry/Model.h>
 #include <frontend/frontend.h>
+#include <glm/gtc/matrix_transform.hpp>
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 VulkanBackendInfo backendInfo;
-
-RenderModel defaultTri;
 
 namespace Vulkan
 {
@@ -111,6 +112,16 @@ void RenderBackend::SubmitCommand(DrawCommands cmd, void *data)
 	case DRAW_RENDER_VIEW:
 		DrawView();
 		break;
+	case DRAW_UPDATE_UNIFORM:
+		curUniformInfo = *(DrawUniformInfo*)data;
+		break;
+	case DRAW_SUBMIT_GEOMETRY:
+	{
+		BackendModel model;
+		model.model = (RenderModel*)data;
+		models.push_back(model);
+		break;
+	}
 	default:
 		printf("ERROR: Couldn't execute unknown backend command %d\n", cmd);
 		exit(1);
@@ -152,13 +163,15 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 	backendInfo.pipeline = Vulkan::PipelineBuilder()
 		.AttachShader(Vulkan::SHADER_VERTEX, backendInfo.colorShader.vertexShader)
 		.AttachShader(Vulkan::SHADER_FRAGMENT, backendInfo.colorShader.fragmentShader)
+		.AddDescriptorLayout(Vulkan::ShaderType::SHADER_VERTEX, Vulkan::DescriptorType::DESCRIPTOR_UBO)
 		.SetupDynamicState()
 		.SetupVertexInput(sizeof(DrawVert), 0)
 		.AddAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(DrawVert, position))
 		.AddAttribute(0, 1, VK_FORMAT_R32G32B32_SFLOAT, offsetof(DrawVert, color))
+		.AddAttribute(0, 2, VK_FORMAT_R32G32_SFLOAT, offsetof(DrawVert, texCoord))
 		.SetupInputAssembly(VK_FALSE, VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST)
 		.SetupViewportAndScisoor()
-		.SetupRasterizer(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_CLOCKWISE)
+		.SetupRasterizer(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.SetupMultisampling()
 		.SetupColorBlending(VK_FALSE)
 		.SetLayout()
@@ -181,15 +194,49 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 	}
 
 	backendInfo.vertexBuffer.Create(BUFFERUSAGE_VERTEX);
-	backendInfo.stagingBuffer.Create(BUFFERUSAGE_STAGING);
+	backendInfo.indexBuffer.Create(BUFFERUSAGE_INDEX);
+	backendInfo.vertexStagingBuffer.Create(BUFFERUSAGE_STAGING);
+	backendInfo.indexStagingBuffer.Create(BUFFERUSAGE_STAGING);
+	backendInfo.uniformBuffers.resize(MAX_FRAME_DATA);
+	for (int i = 0; i < MAX_FRAME_DATA; i++)
+	{
+		backendInfo.uniformBuffers[i].Create(BUFFERUSAGE_UNIFORM, sizeof(DrawUniformInfo));
+	}
 
-	defaultTri.MakeDefaultTriangle();
+	backendInfo.pool = Vulkan::DescriptorPoolBuilder()
+						.AddSize(Vulkan::DescriptorPoolType::DESCRIPTOR_POOL_UBO,
+								MAX_FRAME_DATA)
+						.SetMaxSize(MAX_FRAME_DATA)
+						.Build();
+	
+	backendInfo.descriptorSets = backendInfo.pool.AllocSets(backendInfo.pipeline.setConstants, MAX_FRAME_DATA);
+
+	for (int i = 0; i < MAX_FRAME_DATA; i++)
+	{
+		VkDescriptorBufferInfo bufInfo = {};
+		bufInfo.buffer = backendInfo.uniformBuffers[i].GetBuffer();
+		bufInfo.offset = 0;
+		bufInfo.range = VK_WHOLE_SIZE;
+
+		VkWriteDescriptorSet descWrite = {};
+		descWrite.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+		descWrite.dstSet = backendInfo.descriptorSets[i];
+		descWrite.dstBinding = 0;
+		descWrite.dstArrayElement = 0;
+		descWrite.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		descWrite.descriptorCount = 1;
+		descWrite.pBufferInfo = &bufInfo;
+		
+		vkUpdateDescriptorSets(backendInfo.device, 1, &descWrite, 0, NULL);
+	}
 }
 
 void RenderBackend::ShutdownBackend()
 {
 	vkDeviceWaitIdle(backendInfo.device);
-	backendInfo.stagingBuffer.Destroy();
+	backendInfo.vertexStagingBuffer.Destroy();
+	backendInfo.indexStagingBuffer.Destroy();
+	backendInfo.indexBuffer.Destroy();
 	backendInfo.vertexBuffer.Destroy();
 	for (int i = 0; i < MAX_FRAME_DATA; i++)
 	{
@@ -197,12 +244,16 @@ void RenderBackend::ShutdownBackend()
 		vkDestroySemaphore(backendInfo.device, backendInfo.imageAvailSemas[i], NULL);
 		vkDestroySemaphore(backendInfo.device, backendInfo.renderFinishedSemas[i], NULL);
 		backendInfo.renderCmdBuffers[i]->Destroy();
+		backendInfo.uniformBuffers[i].Destroy();
 		delete backendInfo.renderCmdBuffers[i];
 	}
+	vkDestroyDescriptorPool(backendInfo.device, backendInfo.pool.GetPool(), NULL);
 	for (auto framebuffer : backendInfo.swapChainFramebuffers)
 		vkDestroyFramebuffer(backendInfo.device, framebuffer, NULL);
 	vkDestroyPipeline(backendInfo.device, backendInfo.pipeline.pipeline, NULL);
 	vkDestroyPipelineLayout(backendInfo.device, backendInfo.pipeline.layout, NULL);
+	for (auto setConst : backendInfo.pipeline.setConstants)
+		vkDestroyDescriptorSetLayout(backendInfo.device, setConst, NULL);
 	vkDestroyRenderPass(backendInfo.device, backendInfo.renderPass, NULL);
 	vkDestroyShaderModule(backendInfo.device, backendInfo.colorShader.vertexShader, NULL);
 	vkDestroyShaderModule(backendInfo.device, backendInfo.colorShader.fragmentShader, NULL);
@@ -214,9 +265,19 @@ void RenderBackend::ShutdownBackend()
 	vkDestroyInstance(backendInfo.instance, NULL);
 }
 
+std::chrono::_V2::high_resolution_clock::time_point startTime;
+
 void RenderBackend::DrawView()
 {
 	uint32_t index = frame % MAX_FRAME_DATA;
+
+	if (!startTime.time_since_epoch().count())
+		startTime = std::chrono::high_resolution_clock::now(); 
+	auto curTime = std::chrono::high_resolution_clock::now();
+
+	auto time = std::chrono::duration<float, std::chrono::seconds::period>(curTime - startTime).count();
+
+	curUniformInfo.model = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
 
 	// Make sure previous frame is done
 	vkWaitForFences(backendInfo.device, 1, &backendInfo.inFlightFences[index], VK_TRUE, UINT64_MAX);
@@ -225,19 +286,41 @@ void RenderBackend::DrawView()
 	uint32_t imageIndex;
 	vkAcquireNextImageKHR(backendInfo.device, backendInfo.swapChain, UINT64_MAX, backendInfo.imageAvailSemas[index], VK_NULL_HANDLE, &imageIndex);
 
-	backendInfo.stagingBuffer.CopyData(((renderTriangle_t*)(defaultTri.GetData()))->verts, defaultTri.GetSize());
+	// Reset all allocations in the buffer
+	backendInfo.vertexStagingBuffer.BeginFrame();
+	backendInfo.indexStagingBuffer.BeginFrame();
 
-	// Copy the staging buffer into the vertex buffer
-	Vulkan::DoBufferCopy(backendInfo.vertexBuffer, backendInfo.stagingBuffer);
+	for (auto& model : models)
+	{
+		model.vertexHandle = backendInfo.vertexStagingBuffer.Alloc(model.GetData()->verts, model.GetSize());
+		model.indexHandle = backendInfo.indexStagingBuffer.Alloc(model.GetData()->indices, model.GetData()->indexCount * sizeof(uint16_t));
+	}
+
+	Vulkan::DoBufferCopy(backendInfo.vertexBuffer, backendInfo.vertexStagingBuffer);
+	Vulkan::DoBufferCopy(backendInfo.indexBuffer, backendInfo.indexStagingBuffer);
+
+	backendInfo.uniformBuffers[index].CopyData((void*)&curUniformInfo, sizeof(curUniformInfo));
 
 	auto& cmdBuf = backendInfo.renderCmdBuffers[index];
-	cmdBuf->BeginFrame();
-	cmdBuf->BeginRenderPass(backendInfo.renderPass, backendInfo.swapChainFramebuffers[imageIndex], backendInfo.swapChainExtent);
-	cmdBuf->BindPipeline(backendInfo.pipeline.pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
-	cmdBuf->SetupViewportAndScissor({0, 0}, backendInfo.swapChainExtent);
-	cmdBuf->BindVertexBuffer(backendInfo.vertexBuffer.GetBuffer(), 0);
-	cmdBuf->Draw(((renderTriangle_t*)(defaultTri.GetData()))->vertCount, 1, 0, 0);
-	cmdBuf->EndFrame();
+	
+	for (auto& model : models)
+	{
+		cacheHandle_t vertexHandle = model.vertexHandle;
+		cacheHandle_t indexHandle = model.indexHandle;
+
+		size_t vtxOffset = (vertexHandle >> 24) & 0x1ffffff;
+		size_t idxOffset = (indexHandle >> 24) & 0x1ffffff;
+
+		cmdBuf->BeginFrame();
+		cmdBuf->BeginRenderPass(backendInfo.renderPass, backendInfo.swapChainFramebuffers[imageIndex], backendInfo.swapChainExtent);
+		cmdBuf->BindPipeline(backendInfo.pipeline.pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
+		cmdBuf->SetupViewportAndScissor({0, 0}, backendInfo.swapChainExtent);
+		cmdBuf->BindVertexBuffer(backendInfo.vertexBuffer.GetBuffer(), vtxOffset);
+		cmdBuf->BindIndexBuffer(backendInfo.indexBuffer.GetBuffer(), idxOffset);
+		cmdBuf->BindDescriptorSet(backendInfo.descriptorSets[index]);
+		cmdBuf->DrawIndexed(model.GetData()->indexCount, 1, 0, 0, 0);
+		cmdBuf->EndFrame();
+	}
 
 	cmdBuf->Submit(backendInfo.graphicsQueue, backendInfo.imageAvailSemas[index], backendInfo.renderFinishedSemas[index], backendInfo.inFlightFences[index]);
 
@@ -250,6 +333,8 @@ void RenderBackend::DrawView()
 	presentInfo.pSwapchains = swapChains;
 	presentInfo.pImageIndices = &imageIndex;
 	vkQueuePresentKHR(backendInfo.presentQueue, &presentInfo);
+
+	models.clear();
 
 	frame++;
 }

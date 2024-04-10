@@ -9,6 +9,40 @@ std::vector<VkDynamicState> dynamicStates =
 	VK_DYNAMIC_STATE_SCISSOR	
 };
 
+PipelineBuilder &PipelineBuilder::AddDescriptorLayout(ShaderType usage, DescriptorType type)
+{
+	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
+	uboLayoutBinding.binding = setConstants.size();
+	uboLayoutBinding.descriptorCount = 1;
+	switch (type)
+	{
+	case DESCRIPTOR_UBO:
+		uboLayoutBinding.descriptorType = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER;
+		break;
+	}
+
+	switch (usage)
+	{
+	case ShaderType::SHADER_VERTEX:
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		break;
+	}
+
+	VkDescriptorSetLayoutCreateInfo createInfo = {};
+	createInfo.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_LAYOUT_CREATE_INFO;
+	createInfo.bindingCount = 1;
+	createInfo.pBindings = &uboLayoutBinding;
+
+	VkDescriptorSetLayout layout;
+
+	if (vkCreateDescriptorSetLayout(backendInfo.device, &createInfo, NULL, &layout) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create descriptor set layout");
+
+	setConstants.push_back(layout);
+
+	return *this;
+}
+
 PipelineBuilder &PipelineBuilder::AttachShader(ShaderType type, VkShaderModule mod)
 {
 	VkPipelineShaderStageCreateInfo createInfo = {};
@@ -143,6 +177,8 @@ PipelineBuilder &PipelineBuilder::SetLayout()
 pipeline_t PipelineBuilder::Build()
 {
 	pipeline_t ret;
+
+	ret.setConstants = setConstants;
 
 	// We start by creating the pipeline layout
 	if (vkCreatePipelineLayout(backendInfo.device, &pipelineCreateInfo, NULL, &layout) != VK_SUCCESS)

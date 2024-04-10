@@ -1,7 +1,11 @@
 #include "frontend.h"
+#include <chrono>
+#include <glm/gtc/matrix_transform.hpp>
 
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
+
+RenderModel defaultTri, defaultQuad;
 
 RenderFrontend::~RenderFrontend()
 {
@@ -26,16 +30,34 @@ void RenderFrontend::InitFrontend(bool fullscreen)
 	initInfo.screenWidth = WINDOW_WIDTH;
 	initInfo.frontend = this;
 	backend.SubmitCommand(DRAW_INIT, &initInfo);
+
+	defaultQuad.MakeDefaultQuad();
+	defaultTri.MakeDefaultTriangle();
 }
 
 void RenderFrontend::DrawView()
 {
+	static auto startTime = std::chrono::high_resolution_clock::now();
+	auto currentTime = std::chrono::high_resolution_clock::now();
+    float time = std::chrono::duration<float, std::chrono::seconds::period>(currentTime - startTime).count();
+
 	// Check for exit commands from the user, as an easy out
 	glfwPollEvents();
 
 	if (glfwWindowShouldClose(window))
 		return;
 	
+	DrawUniformInfo info = {};
+	
+	// TODO: Seperate the model matrix. It should be owned by the mesh being rendered. We'll batch them up then bind them one at a time
+	glm::mat4 view = glm::lookAt(glm::vec3(2.0f), glm::vec3(0.0f), glm::vec3(0.0f, 0.0f, 1.0f));
+	info.view = view;
+	info.proj = glm::perspective(glm::radians(45.0f), WINDOW_WIDTH / (float)WINDOW_HEIGHT, 0.1f, 10.0f);
+	info.proj[1][1] *= -1;
+	backend.SubmitCommand(DRAW_UPDATE_UNIFORM, &info);
+
+	backend.SubmitCommand(DRAW_SUBMIT_GEOMETRY, (void*)&defaultQuad);
+
 	backend.SubmitCommand(DRAW_RENDER_VIEW, NULL);
 }
 

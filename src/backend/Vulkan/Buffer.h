@@ -9,7 +9,8 @@ enum BufferUsage
 {
 	BUFFERUSAGE_VERTEX,
 	BUFFERUSAGE_INDEX,
-	BUFFERUSAGE_STAGING
+	BUFFERUSAGE_STAGING,
+	BUFFERUSAGE_UNIFORM
 };
 
 namespace Vulkan
@@ -18,10 +19,11 @@ namespace Vulkan
 class Buffer
 {
 public:
-	void Create(BufferUsage usage);
+	void Create(BufferUsage usage, size_t size = 65536);
 	void Destroy();
 
-	void CopyData(void* data, int size);
+	void CopyData(void* data, int size, int offset = 0);
+	cacheHandle_t Alloc(void* data, int size);
 
 	void BeginFrame();
 

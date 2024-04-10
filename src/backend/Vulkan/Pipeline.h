@@ -11,9 +11,16 @@ enum ShaderType
 	SHADER_FRAGMENT,
 };
 
+enum DescriptorType
+{
+	DESCRIPTOR_UBO
+};
+
 class PipelineBuilder
 {
 public:
+	PipelineBuilder& AddDescriptorLayout(ShaderType usage, DescriptorType type);
+
 	PipelineBuilder& AttachShader(ShaderType type, VkShaderModule mod);
 	PipelineBuilder& SetupDynamicState();
 	PipelineBuilder& SetupVertexInput(size_t stride, int binding);

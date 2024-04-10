@@ -25,7 +25,10 @@ public:
 	void BindPipeline(VkPipeline pipeline, VkPipelineBindPoint bindPoint);
 	void SetupViewportAndScissor(VkExtent2D offset, VkExtent2D size);
 	void BindVertexBuffer(VkBuffer buffer, size_t offset);
+	void BindIndexBuffer(VkBuffer buffer, size_t offset);
+	void BindDescriptorSet(VkDescriptorSet set);
 	void Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance);
+	void DrawIndexed(int indices, int instanceCount, int startOffs, int indexOffs, int firstInstance);
 	void EndFrame();
 
 	void Submit(VkQueue queue, VkSemaphore waitSemaphore, VkSemaphore finishedSema, VkFence fence);
@@ -34,6 +37,6 @@ private:
 	VkCommandBuffer buffer;
 };
 
-void DoBufferCopy(Buffer& dst, Buffer& src);
+void DoBufferCopy(Buffer& dst, Buffer& src, uint32_t offset = 0);
 
 }
