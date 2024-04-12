@@ -53,16 +53,18 @@ void Vulkan::CommandBuffer::BeginFrame()
 		throw std::runtime_error("Failed to begine command buffer");
 }
 
-void Vulkan::CommandBuffer::BeginRenderPass(VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D size, VkClearValue clearColor)
+void Vulkan::CommandBuffer::BeginRenderPass(VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D size, VkClearValue clearColor, VkClearValue depthColor)
 {
+	VkClearValue values[2] = {clearColor, depthColor};
+
 	VkRenderPassBeginInfo beginInfo = {};
 	beginInfo.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
 	beginInfo.renderPass = renderPass;
 	beginInfo.framebuffer = framebuffer;
 	beginInfo.renderArea.offset = {0, 0};
 	beginInfo.renderArea.extent = size;
-	beginInfo.clearValueCount = 1;
-	beginInfo.pClearValues = &clearColor;
+	beginInfo.clearValueCount = 2;
+	beginInfo.pClearValues = values;
 
 	vkCmdBeginRenderPass(buffer, &beginInfo, VK_SUBPASS_CONTENTS_INLINE);
 }

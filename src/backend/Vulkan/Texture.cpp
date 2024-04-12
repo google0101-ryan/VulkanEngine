@@ -21,53 +21,17 @@ Vulkan::Texture::Texture(std::string fileName)
 
 	stbi_image_free(pixels);
 
-	VkImageCreateInfo createInfo = {};
-	createInfo.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
-	createInfo.imageType = VK_IMAGE_TYPE_2D;
-	createInfo.extent.width = width;
-	createInfo.extent.height = height;
-	createInfo.extent.depth = 1;
-	createInfo.mipLevels = 1;
-	createInfo.arrayLayers = 1;
-	createInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-	createInfo.tiling = VK_IMAGE_TILING_OPTIMAL;
-	createInfo.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
-	createInfo.usage = VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT;
-	createInfo.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-	createInfo.samples = VK_SAMPLE_COUNT_1_BIT;
-	createInfo.flags = 0;
-
-	VmaAllocationCreateInfo allocInfo = {};
-	allocInfo.usage = VMA_MEMORY_USAGE_AUTO;
-	allocInfo.flags = 0;
-	allocInfo.priority = 1.0f;
-
-	if (vmaCreateImage(allocator, &createInfo, &allocInfo, &image, &alloc, NULL) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create texture image");
+	image = new Image(width, height, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_USAGE_TRANSFER_DST_BIT | VK_IMAGE_USAGE_SAMPLED_BIT, VK_IMAGE_TILING_LINEAR, VK_IMAGE_ASPECT_COLOR_BIT);
 	
 	CommandBuffer cmdBuf(COMMAND_BUFFER_DONT_CARE, backendInfo.graphicsIndex);
 
 	cmdBuf.StartSingleTimeCommands();
-	cmdBuf.TransitionImage(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
-	cmdBuf.CopyBufferToImage(stagingBuffer.GetBuffer(), image, width, height);
-	cmdBuf.TransitionImage(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
+	cmdBuf.TransitionImage(image->GetImage(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_UNDEFINED, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL);
+	cmdBuf.CopyBufferToImage(stagingBuffer.GetBuffer(), image->GetImage(), width, height);
+	cmdBuf.TransitionImage(image->GetImage(), VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	cmdBuf.EndSingleTimeCommands();
 	cmdBuf.Destroy();
 	stagingBuffer.Destroy();
-
-	VkImageViewCreateInfo viewInfo = {};
-	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-	viewInfo.image = image;
-	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
-	viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
-	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-	viewInfo.subresourceRange.baseArrayLayer = 0;
-	viewInfo.subresourceRange.baseMipLevel = 0;
-	viewInfo.subresourceRange.layerCount = 1;
-	viewInfo.subresourceRange.levelCount = 1;
-
-	if (vkCreateImageView(backendInfo.device, &viewInfo, NULL, &view) != VK_SUCCESS)
-		throw std::runtime_error("Failed to create image view for texture");
 	
 	VkPhysicalDeviceProperties properties{};
 	vkGetPhysicalDeviceProperties(backendInfo.gpu, &properties);
@@ -97,7 +61,7 @@ Vulkan::Texture::Texture(std::string fileName)
 
 	VkDescriptorImageInfo imageInfo = {};
 	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
-	imageInfo.imageView = view;
+	imageInfo.imageView = image->GetView();
 	imageInfo.sampler = sampler;
 
 	VkWriteDescriptorSet writeInfo = {};

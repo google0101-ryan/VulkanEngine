@@ -160,6 +160,7 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 
 	backendInfo.renderPass = Vulkan::RenderPassBuilder()
 										.ConfigureColorAttachment()
+										.SetDepthAttachment(VK_FORMAT_D24_UNORM_S8_UINT)
 										.SetSubpass()
 										.Build();
 
@@ -178,12 +179,27 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 		.SetupRasterizer(VK_CULL_MODE_BACK_BIT, VK_FRONT_FACE_COUNTER_CLOCKWISE)
 		.SetupMultisampling()
 		.SetupColorBlending(VK_FALSE)
+		.SetupDepthStencil(VK_TRUE, VK_TRUE, VK_COMPARE_OP_LESS)
 		.SetLayout()
 		.Build();
+
+	backendInfo.vertexBuffer.Create(BUFFERUSAGE_VERTEX);
+	backendInfo.indexBuffer.Create(BUFFERUSAGE_INDEX);
+	backendInfo.vertexStagingBuffer.Create(BUFFERUSAGE_STAGING);
+	backendInfo.indexStagingBuffer.Create(BUFFERUSAGE_STAGING);
+	backendInfo.uniformBuffers.resize(MAX_FRAME_DATA);
+	for (int i = 0; i < MAX_FRAME_DATA; i++)
+	{
+		backendInfo.uniformBuffers[i].Create(BUFFERUSAGE_UNIFORM);
+	}
+
+	backendInfo.depthBufferImage = new Vulkan::Image(backendInfo.swapChainExtent.width, backendInfo.swapChainExtent.height, 
+										VK_FORMAT_D24_UNORM_S8_UINT, VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT, 
+										VK_IMAGE_TILING_OPTIMAL, VK_IMAGE_ASPECT_DEPTH_BIT);
 	
 	backendInfo.swapChainFramebuffers.resize(backendInfo.swapChainImageViews.size());
 	for (size_t i = 0; i < backendInfo.swapChainImageViews.size(); i++)
-		backendInfo.swapChainFramebuffers[i] = Vulkan::CreateFramebuffer(backendInfo.swapChainExtent, {backendInfo.swapChainImageViews[i]});
+		backendInfo.swapChainFramebuffers[i] = Vulkan::CreateFramebuffer(backendInfo.swapChainExtent, {backendInfo.swapChainImageViews[i], backendInfo.depthBufferImage->GetView()});
 	
 	backendInfo.renderCmdBuffers.resize(MAX_FRAME_DATA);
 	backendInfo.imageAvailSemas.resize(MAX_FRAME_DATA);
@@ -195,16 +211,6 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 		backendInfo.imageAvailSemas[i] = Vulkan::CreateSemaphore();
 		backendInfo.renderFinishedSemas[i] = Vulkan::CreateSemaphore();
 		backendInfo.inFlightFences[i] = Vulkan::CreateFence(true);
-	}
-
-	backendInfo.vertexBuffer.Create(BUFFERUSAGE_VERTEX);
-	backendInfo.indexBuffer.Create(BUFFERUSAGE_INDEX);
-	backendInfo.vertexStagingBuffer.Create(BUFFERUSAGE_STAGING);
-	backendInfo.indexStagingBuffer.Create(BUFFERUSAGE_STAGING);
-	backendInfo.uniformBuffers.resize(MAX_FRAME_DATA);
-	for (int i = 0; i < MAX_FRAME_DATA; i++)
-	{
-		backendInfo.uniformBuffers[i].Create(BUFFERUSAGE_UNIFORM);
 	}
 
 	backendInfo.pool = Vulkan::DescriptorPoolBuilder()
@@ -302,8 +308,16 @@ void RenderBackend::DrawView()
 
 	auto& cmdBuf = backendInfo.renderCmdBuffers[index];
 
+	VkClearValue colorClear;
+	colorClear.color.float32[0] = 0.0f;
+	colorClear.color.float32[1] = 0.0f;
+	colorClear.color.float32[2] = 0.0f;
+	colorClear.color.float32[3] = 1.0f;
+	VkClearValue depthClear;
+	depthClear.depthStencil = {1.0f, 0};
+
 	cmdBuf->BeginFrame();
-	cmdBuf->BeginRenderPass(backendInfo.renderPass, backendInfo.swapChainFramebuffers[imageIndex], backendInfo.swapChainExtent);
+	cmdBuf->BeginRenderPass(backendInfo.renderPass, backendInfo.swapChainFramebuffers[imageIndex], backendInfo.swapChainExtent, colorClear, depthClear);
 	cmdBuf->BindPipeline(backendInfo.pipeline.pipeline, VK_PIPELINE_BIND_POINT_GRAPHICS);
 	cmdBuf->SetupViewportAndScissor({0, 0}, backendInfo.swapChainExtent);	
 	

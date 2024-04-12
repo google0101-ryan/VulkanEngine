@@ -168,6 +168,20 @@ PipelineBuilder &PipelineBuilder::SetupColorBlending(VkBool32 blendEnabled, VkBl
 
 	return *this;
 }
+
+PipelineBuilder &PipelineBuilder::SetupDepthStencil(VkBool32 depthTestEnabled, VkBool32 depthWriteEnabled, VkCompareOp compareOp)
+{
+	depthStencilInfo = {};
+	depthStencilInfo.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+	depthStencilInfo.depthTestEnable = depthTestEnabled;
+	depthStencilInfo.depthWriteEnable = depthWriteEnabled;
+	depthStencilInfo.depthCompareOp = compareOp;
+	depthStencilInfo.depthBoundsTestEnable = VK_FALSE;
+	depthStencilInfo.stencilTestEnable = VK_FALSE;
+
+	return *this;
+}
+
 PipelineBuilder &PipelineBuilder::SetLayout()
 {
 	uint32_t setConstantSize = setConstants.size();
@@ -213,6 +227,7 @@ pipeline_t PipelineBuilder::Build()
 	createInfo.pMultisampleState = &multisampling;
 	createInfo.pColorBlendState = &blendState;
 	createInfo.pDynamicState = &dynamicState;
+	createInfo.pDepthStencilState = &depthStencilInfo;
 	createInfo.layout = layout;
 	createInfo.renderPass = backendInfo.renderPass;
 	createInfo.subpass = 0;

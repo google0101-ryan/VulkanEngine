@@ -26,6 +26,7 @@ set(SOURCES backend/Vulkan/VulkanInstance.cpp
 			backend/Vulkan/ShaderUnit.cpp
 			backend/Vulkan/DescriptorPool.cpp
 			backend/Vulkan/Texture.cpp
+			backend/Vulkan/Image.cpp
 			frontend/frontend.cpp
 			app/Application.cpp
 			main.cpp

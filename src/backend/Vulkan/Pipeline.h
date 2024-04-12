@@ -32,6 +32,7 @@ public:
 	PipelineBuilder& SetupRasterizer(VkCullModeFlagBits cullMode, VkFrontFace frontFace);
 	PipelineBuilder& SetupMultisampling();
 	PipelineBuilder& SetupColorBlending(VkBool32 blendEnabled, VkBlendFactor srcBlendFactor = VK_BLEND_FACTOR_ONE, VkBlendFactor dstBlendFactor = VK_BLEND_FACTOR_ONE, VkBlendOp op = VK_BLEND_OP_ADD);
+	PipelineBuilder& SetupDepthStencil(VkBool32 depthTestEnabled, VkBool32 depthWriteEnabled, VkCompareOp compareOp);
 	PipelineBuilder& SetLayout();
 	pipeline_t Build();
 private:
@@ -44,6 +45,7 @@ private:
 	VkPipelineMultisampleStateCreateInfo multisampling;
 	VkPipelineColorBlendAttachmentState blending;
 	VkPipelineColorBlendStateCreateInfo blendState;
+	VkPipelineDepthStencilStateCreateInfo depthStencilInfo;
 	std::vector<VkDescriptorSetLayout> setConstants;
 	std::vector<VkPushConstantRange> pushConstants;
 	VkPipelineLayoutCreateInfo pipelineCreateInfo;

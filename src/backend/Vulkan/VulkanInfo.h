@@ -6,6 +6,7 @@
 #include <backend/Vulkan/CommandBuffer.h>
 #include <backend/Vulkan/Buffer.h>
 #include <backend/Vulkan/DescriptorPool.h>
+#include <backend/Vulkan/Image.h>
 
 static constexpr int MAX_FRAME_DATA = 2;
 
@@ -46,6 +47,7 @@ struct VulkanBackendInfo
 	std::vector<Vulkan::Buffer> uniformBuffers;
 	Vulkan::DescriptorPool pool;
 	std::vector<VkDescriptorSet> descriptorSets;
+	Vulkan::Image* depthBufferImage;
 };
 
 extern VulkanBackendInfo backendInfo;

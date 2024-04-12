@@ -22,7 +22,7 @@ public:
 	void Destroy();
 
 	void BeginFrame();
-	void BeginRenderPass(VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D size, VkClearValue clearColor = {{0.0f, 0.0f, 0.0f, 1.0f}});
+	void BeginRenderPass(VkRenderPass renderPass, VkFramebuffer framebuffer, VkExtent2D size, VkClearValue clearColor = {{0.0f, 0.0f, 0.0f, 1.0f}}, VkClearValue depthColor = {{0.0f, 0.0f, 0.0f, 0.0f}});
 	void BindPipeline(VkPipeline pipeline, VkPipelineBindPoint bindPoint);
 	void SetupViewportAndScissor(VkExtent2D offset, VkExtent2D size);
 	void BindVertexBuffer(VkBuffer buffer, size_t offset);
