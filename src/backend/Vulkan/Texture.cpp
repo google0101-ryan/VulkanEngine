@@ -53,6 +53,61 @@ Vulkan::Texture::Texture(std::string fileName)
 	cmdBuf.TransitionImage(image, VK_FORMAT_R8G8B8A8_SRGB, VK_IMAGE_LAYOUT_TRANSFER_DST_OPTIMAL, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL);
 	cmdBuf.EndSingleTimeCommands();
 	cmdBuf.Destroy();
+	stagingBuffer.Destroy();
 
+	VkImageViewCreateInfo viewInfo = {};
+	viewInfo.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+	viewInfo.image = image;
+	viewInfo.viewType = VK_IMAGE_VIEW_TYPE_2D;
+	viewInfo.format = VK_FORMAT_R8G8B8A8_SRGB;
+	viewInfo.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+	viewInfo.subresourceRange.baseArrayLayer = 0;
+	viewInfo.subresourceRange.baseMipLevel = 0;
+	viewInfo.subresourceRange.layerCount = 1;
+	viewInfo.subresourceRange.levelCount = 1;
 
+	if (vkCreateImageView(backendInfo.device, &viewInfo, NULL, &view) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create image view for texture");
+	
+	VkPhysicalDeviceProperties properties{};
+	vkGetPhysicalDeviceProperties(backendInfo.gpu, &properties);
+
+	VkSamplerCreateInfo samplerInfo = {};
+	samplerInfo.sType = VK_STRUCTURE_TYPE_SAMPLER_CREATE_INFO;
+	samplerInfo.magFilter = VK_FILTER_LINEAR;
+	samplerInfo.minFilter = VK_FILTER_LINEAR;
+	samplerInfo.addressModeU = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeV = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.addressModeW = VK_SAMPLER_ADDRESS_MODE_REPEAT;
+	samplerInfo.anisotropyEnable = VK_TRUE;
+	samplerInfo.maxAnisotropy = properties.limits.maxSamplerAnisotropy;
+	samplerInfo.borderColor = VK_BORDER_COLOR_INT_OPAQUE_BLACK;
+	samplerInfo.unnormalizedCoordinates = VK_FALSE;
+	samplerInfo.compareEnable = VK_FALSE;
+	samplerInfo.compareOp = VK_COMPARE_OP_ALWAYS;
+	samplerInfo.mipmapMode = VK_SAMPLER_MIPMAP_MODE_LINEAR;
+	samplerInfo.mipLodBias = 0.0f;
+	samplerInfo.minLod = 0.0f;
+	samplerInfo.maxLod = 0.0f;
+	
+	if (vkCreateSampler(backendInfo.device, &samplerInfo, NULL, &sampler) != VK_SUCCESS)
+		throw std::runtime_error("Failed to create sampler for texture");
+	
+	descriptorSet = backendInfo.pool.AllocSets(backendInfo.pipeline.setConstants[1], 1)[0];
+
+	VkDescriptorImageInfo imageInfo = {};
+	imageInfo.imageLayout = VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL;
+	imageInfo.imageView = view;
+	imageInfo.sampler = sampler;
+
+	VkWriteDescriptorSet writeInfo = {};
+	writeInfo.sType = VK_STRUCTURE_TYPE_WRITE_DESCRIPTOR_SET;
+	writeInfo.dstSet = descriptorSet;
+	writeInfo.dstBinding = 0;
+	writeInfo.dstArrayElement = 0;
+	writeInfo.descriptorCount = 1;
+	writeInfo.descriptorType = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+	writeInfo.pImageInfo = &imageInfo;
+		
+	vkUpdateDescriptorSets(backendInfo.device, 1, &writeInfo, 0, NULL);
 }

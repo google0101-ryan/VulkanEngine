@@ -14,6 +14,7 @@
 #include <backend/Vulkan/RenderPass.h>
 #include <backend/Vulkan/Framebuffer.h>
 #include <backend/Vulkan/DescriptorPool.h>
+#include <backend/Vulkan/Texture.h>
 #include <geometry/Model.h>
 #include <frontend/frontend.h>
 #include <glm/gtc/matrix_transform.hpp>
@@ -48,6 +49,7 @@ VkDevice CreateDevice()
 	}
 
 	VkPhysicalDeviceFeatures deviceFeatures = {};
+	deviceFeatures.samplerAnisotropy = VK_TRUE;
 
 	VkDeviceCreateInfo createInfo = {};
 	createInfo.sType = VK_STRUCTURE_TYPE_DEVICE_CREATE_INFO;
@@ -207,13 +209,12 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 
 	backendInfo.pool = Vulkan::DescriptorPoolBuilder()
 						.AddSize(Vulkan::DESCRIPTOR_POOL_UBO_DYNAMIC, MAX_FRAME_DATA)
-						.AddSize(Vulkan::DESCRIPTOR_POOL_SAMPLER, MAX_FRAME_DATA)
-						.SetMaxSize(MAX_FRAME_DATA)
+						.AddSize(Vulkan::DESCRIPTOR_POOL_SAMPLER, 2*1024*1024)
+						.SetMaxSize(2*1024*1024)
 						.Build();
 	
 	backendInfo.descriptorSets = backendInfo.pool.AllocSets(backendInfo.pipeline.setConstants[0], MAX_FRAME_DATA);
-	backendInfo.perObjectDescriptorSets = backendInfo.pool.AllocSets(backendInfo.pipeline.setConstants[1], MAX_FRAME_DATA);
-
+	
 	// TODO: Maybe wrap descriptor writing in a function?
 	for (int i = 0; i < MAX_FRAME_DATA; i++)
 	{
@@ -318,7 +319,8 @@ void RenderBackend::DrawView()
 
 		cmdBuf->BindVertexBuffer(backendInfo.vertexBuffer.GetBuffer(), vtxOffset);
 		cmdBuf->BindIndexBuffer(backendInfo.indexBuffer.GetBuffer(), idxOffset);
-		cmdBuf->BindDescriptorSet(backendInfo.descriptorSets[index], unifOffset);
+		cmdBuf->BindDescriptorSet(backendInfo.descriptorSets[index], 0, unifOffset);
+		cmdBuf->BindDescriptorSet(((Vulkan::Texture*)model.model.GetTexture())->descriptorSet, 1, -1);
 		cmdBuf->DrawIndexed(model.GetData()->indexCount, 1, 0, 0, 0);
 	}
 	

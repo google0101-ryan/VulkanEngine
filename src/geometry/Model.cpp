@@ -57,8 +57,8 @@ void RenderModel::MakeDefaultQuad()
 	tris->verts[0].color[0] = 1.0f;
 	tris->verts[0].color[1] = 0.0f;
 	tris->verts[0].color[2] = 0.0f;
-	tris->verts[0].texCoord[0] = 0.0f;
-	tris->verts[0].texCoord[1] = 1.0f;
+	tris->verts[0].texCoord[0] = 1.0f;
+	tris->verts[0].texCoord[1] = 0.0f;
 
 	tris->verts[1].position[0] = 0.5f;
 	tris->verts[1].position[1] = -0.5f;
@@ -66,8 +66,8 @@ void RenderModel::MakeDefaultQuad()
 	tris->verts[1].color[0] = 0.0f;
 	tris->verts[1].color[1] = 1.0f;
 	tris->verts[1].color[2] = 0.0f;
-	tris->verts[0].texCoord[0] = 1.0f;
-	tris->verts[0].texCoord[1] = 1.0f;
+	tris->verts[1].texCoord[0] = 0.0f;
+	tris->verts[1].texCoord[1] = 0.0f;
 
 	tris->verts[2].position[0] = 0.5f;
 	tris->verts[2].position[1] = 0.5f;
@@ -75,8 +75,8 @@ void RenderModel::MakeDefaultQuad()
 	tris->verts[2].color[0] = 0.0f;
 	tris->verts[2].color[1] = 0.0f;
 	tris->verts[2].color[2] = 1.0f;
-	tris->verts[0].texCoord[0] = 1.0f;
-	tris->verts[0].texCoord[1] = 0.0f;
+	tris->verts[2].texCoord[0] = 0.0f;
+	tris->verts[2].texCoord[1] = 1.0f;
 
 	tris->verts[3].position[0] = -0.5f;
 	tris->verts[3].position[1] = 0.5f;
@@ -84,8 +84,8 @@ void RenderModel::MakeDefaultQuad()
 	tris->verts[3].color[0] = 1.0f;
 	tris->verts[3].color[1] = 1.0f;
 	tris->verts[3].color[2] = 1.0f;
-	tris->verts[0].texCoord[0] = 0.0f;
-	tris->verts[0].texCoord[1] = 0.0f;
+	tris->verts[3].texCoord[0] = 1.0f;
+	tris->verts[3].texCoord[1] = 1.0f;
 
 	tris->indexCount = 6;
 	tris->indices = new uint16_t[6];

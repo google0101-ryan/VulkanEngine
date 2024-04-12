@@ -12,7 +12,7 @@ std::vector<VkDynamicState> dynamicStates =
 PipelineBuilder &PipelineBuilder::AddDescriptorLayout(ShaderType usage, DescriptorType type)
 {
 	VkDescriptorSetLayoutBinding uboLayoutBinding = {};
-	uboLayoutBinding.binding = setConstants.size();
+	uboLayoutBinding.binding = 0;
 	uboLayoutBinding.descriptorCount = 1;
 	switch (type)
 	{
@@ -31,6 +31,9 @@ PipelineBuilder &PipelineBuilder::AddDescriptorLayout(ShaderType usage, Descript
 	{
 	case ShaderType::SHADER_VERTEX:
 		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_VERTEX_BIT;
+		break;
+	case ShaderType::SHADER_FRAGMENT:
+		uboLayoutBinding.stageFlags = VK_SHADER_STAGE_FRAGMENT_BIT;
 		break;
 	}
 

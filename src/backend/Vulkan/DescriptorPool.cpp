@@ -56,7 +56,7 @@ std::vector<VkDescriptorSet> Vulkan::DescriptorPool::AllocSets(VkDescriptorSetLa
 	sets.resize(count);
 
 	std::vector<VkDescriptorSetLayout> setLayout(count, layout);
-	VkDescriptorSetAllocateInfo info = {};
+	VkDescriptorSetAllocateInfo info = {}; 
 	info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	info.descriptorPool = pool;
 	info.descriptorSetCount = count;

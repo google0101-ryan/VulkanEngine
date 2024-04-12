@@ -11,11 +11,12 @@ class Texture
 {
 public:
 	Texture(std::string fileName);
-private:
+public:
 	VkImage image;
 	VkSampler sampler;
 	VkImageView view;
 	VmaAllocation alloc;
+	VkDescriptorSet descriptorSet;
 };
 
 }

@@ -16,6 +16,7 @@ public:
 
 	void AddAlbedo(std::string texName);
 
+	Texture* GetTexture() {return texture;}
 	renderTriangle_t* GetData() {return tris;}
 	size_t GetSize() {return tris->vertCount * sizeof(DrawVert);}
 	

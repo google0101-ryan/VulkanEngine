@@ -10,7 +10,7 @@
 
 class Texture
 #ifdef RENDERER_VULKAN
-: Vulkan::Texture
+: public Vulkan::Texture
 #endif
 {
 private:
