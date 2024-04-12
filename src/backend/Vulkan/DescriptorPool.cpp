@@ -18,6 +18,9 @@ Vulkan::DescriptorPoolBuilder &Vulkan::DescriptorPoolBuilder::AddSize(Descriptor
 	case DESCRIPTOR_POOL_UBO_DYNAMIC:
 		poolSize.type = VK_DESCRIPTOR_TYPE_UNIFORM_BUFFER_DYNAMIC;
 		break;
+	case DESCRIPTOR_POOL_SAMPLER:
+		poolSize.type = VK_DESCRIPTOR_TYPE_COMBINED_IMAGE_SAMPLER;
+		break;
 	}
 	poolSize.descriptorCount = count;
 
@@ -47,12 +50,12 @@ Vulkan::DescriptorPool Vulkan::DescriptorPoolBuilder::Build()
 	return ret;
 }
 
-std::vector<VkDescriptorSet> Vulkan::DescriptorPool::AllocSets(std::vector<VkDescriptorSetLayout> &layouts, int count)
+std::vector<VkDescriptorSet> Vulkan::DescriptorPool::AllocSets(VkDescriptorSetLayout layout, int count)
 {
 	std::vector<VkDescriptorSet> sets;
 	sets.resize(count);
 
-	std::vector<VkDescriptorSetLayout> setLayout(count, layouts[0]);
+	std::vector<VkDescriptorSetLayout> setLayout(count, layout);
 	VkDescriptorSetAllocateInfo info = {};
 	info.sType = VK_STRUCTURE_TYPE_DESCRIPTOR_SET_ALLOCATE_INFO;
 	info.descriptorPool = pool;

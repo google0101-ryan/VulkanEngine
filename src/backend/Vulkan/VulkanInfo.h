@@ -45,7 +45,7 @@ struct VulkanBackendInfo
 	Vulkan::Buffer vertexBuffer, indexBuffer, vertexStagingBuffer, indexStagingBuffer;
 	std::vector<Vulkan::Buffer> uniformBuffers;
 	Vulkan::DescriptorPool pool;
-	std::vector<VkDescriptorSet> descriptorSets;
+	std::vector<VkDescriptorSet> descriptorSets, perObjectDescriptorSets;
 };
 
 extern VulkanBackendInfo backendInfo;

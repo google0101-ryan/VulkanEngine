@@ -165,6 +165,7 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 		.AttachShader(Vulkan::SHADER_VERTEX, backendInfo.colorShader.vertexShader)
 		.AttachShader(Vulkan::SHADER_FRAGMENT, backendInfo.colorShader.fragmentShader)
 		.AddDescriptorLayout(Vulkan::ShaderType::SHADER_VERTEX, Vulkan::DescriptorType::DESCRIPTOR_UBO_DYNAMIC)
+		.AddDescriptorLayout(Vulkan::ShaderType::SHADER_FRAGMENT, Vulkan::DescriptorType::DESCRIPTOR_SAMPLER)
 		.SetupDynamicState()
 		.SetupVertexInput(sizeof(DrawVert), 0)
 		.AddAttribute(0, 0, VK_FORMAT_R32G32B32_SFLOAT, offsetof(DrawVert, position))
@@ -205,12 +206,13 @@ void RenderBackend::InitBackend(DrawInitInfo *initInfo)
 	}
 
 	backendInfo.pool = Vulkan::DescriptorPoolBuilder()
-						.AddSize(Vulkan::DescriptorPoolType::DESCRIPTOR_POOL_UBO_DYNAMIC,
-								MAX_FRAME_DATA)
+						.AddSize(Vulkan::DESCRIPTOR_POOL_UBO_DYNAMIC, MAX_FRAME_DATA)
+						.AddSize(Vulkan::DESCRIPTOR_POOL_SAMPLER, MAX_FRAME_DATA)
 						.SetMaxSize(MAX_FRAME_DATA)
 						.Build();
 	
-	backendInfo.descriptorSets = backendInfo.pool.AllocSets(backendInfo.pipeline.setConstants, MAX_FRAME_DATA);
+	backendInfo.descriptorSets = backendInfo.pool.AllocSets(backendInfo.pipeline.setConstants[0], MAX_FRAME_DATA);
+	backendInfo.perObjectDescriptorSets = backendInfo.pool.AllocSets(backendInfo.pipeline.setConstants[1], MAX_FRAME_DATA);
 
 	// TODO: Maybe wrap descriptor writing in a function?
 	for (int i = 0; i < MAX_FRAME_DATA; i++)

@@ -9,6 +9,7 @@ class Buffer;
 
 enum CommandBufferType
 {
+	COMMAND_BUFFER_DONT_CARE,
 	COMMAND_BUFFER_STATIC,
 	COMMAND_BUFFER_DYNAMIC,
 	COMMAND_BUFFER_RERECORDABLE
@@ -30,6 +31,11 @@ public:
 	void Draw(int vertexCount, int instanceCount, int firstVertex, int firstInstance);
 	void DrawIndexed(int indices, int instanceCount, int startOffs, int indexOffs, int firstInstance);
 	void EndFrame();
+
+	void StartSingleTimeCommands();
+	void TransitionImage(VkImage image, VkFormat format, VkImageLayout oldLayout, VkImageLayout newLayout);
+	void CopyBufferToImage(VkBuffer buffer, VkImage image, uint32_t width, uint32_t height);
+	void EndSingleTimeCommands();
 
 	void Submit(VkQueue queue, VkSemaphore waitSemaphore, VkSemaphore finishedSema, VkFence fence);
 private:

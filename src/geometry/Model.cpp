@@ -95,4 +95,11 @@ void RenderModel::MakeDefaultQuad()
 	tris->indices[3] = 2;
 	tris->indices[4] = 3;
 	tris->indices[5] = 0;
+
+	AddAlbedo("base/textures/texture.jpg");
+}
+
+void RenderModel::AddAlbedo(std::string texName)
+{
+	texture = new Texture(texName);
 }

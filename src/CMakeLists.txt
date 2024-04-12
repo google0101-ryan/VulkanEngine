@@ -6,7 +6,7 @@ file(GLOB SHADERS ${SHADER_DIR}/*.vert ${SHADER_DIR}/*.frag)
 foreach(SHADER IN LISTS SHADERS)
     get_filename_component(FILENAME ${SHADER} NAME)
     add_custom_command(OUTPUT ${SHADER_DIR}/${FILENAME}.spv
-        COMMAND ${Vulkan_GLSLC_EXECUTABLE} ${SHADER} -o ${SHADER_DIR}/${FILENAME}.spv
+        COMMAND glslc ${SHADER} -o ${SHADER_DIR}/${FILENAME}.spv
         DEPENDS ${SHADER}
         COMMENT "Compiling ${FILENAME}")
 list(APPEND SPV_SHADERS ${SHADER_DIR}/${FILENAME}.spv)
@@ -25,6 +25,7 @@ set(SOURCES backend/Vulkan/VulkanInstance.cpp
 			backend/Vulkan/CommandBuffer.cpp
 			backend/Vulkan/ShaderUnit.cpp
 			backend/Vulkan/DescriptorPool.cpp
+			backend/Vulkan/Texture.cpp
 			frontend/frontend.cpp
 			app/Application.cpp
 			main.cpp

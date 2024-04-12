@@ -11,14 +11,15 @@ class Buffer;
 enum DescriptorPoolType
 {
 	DESCRIPTOR_POOL_UBO,
-	DESCRIPTOR_POOL_UBO_DYNAMIC
+	DESCRIPTOR_POOL_UBO_DYNAMIC,
+	DESCRIPTOR_POOL_SAMPLER
 };
 
 class DescriptorPool
 {
 	friend class DescriptorPoolBuilder;
 public:
-	std::vector<VkDescriptorSet> AllocSets(std::vector<VkDescriptorSetLayout>& layouts, int count);
+	std::vector<VkDescriptorSet> AllocSets(VkDescriptorSetLayout layout, int count);
 
 	VkDescriptorPool GetPool() {return pool;}
 private:
