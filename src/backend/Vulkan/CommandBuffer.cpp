@@ -99,7 +99,7 @@ void Vulkan::CommandBuffer::BindVertexBuffer(VkBuffer buffer, size_t offset)
 
 void Vulkan::CommandBuffer::BindIndexBuffer(VkBuffer buffer, size_t offset)
 {
-	vkCmdBindIndexBuffer(this->buffer, buffer, offset, VK_INDEX_TYPE_UINT16);
+	vkCmdBindIndexBuffer(this->buffer, buffer, offset, VK_INDEX_TYPE_UINT32);
 }
 
 void Vulkan::CommandBuffer::BindDescriptorSet(VkDescriptorSet set, int setNum, int offset)

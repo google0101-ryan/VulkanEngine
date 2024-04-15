@@ -5,7 +5,7 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-RenderModel defaultTri, defaultQuad;
+RenderModel defaultTri, defaultQuad, vikingHouse;
 
 RenderFrontend::~RenderFrontend()
 {
@@ -33,6 +33,8 @@ void RenderFrontend::InitFrontend(bool fullscreen)
 
 	defaultQuad.MakeDefaultQuad();
 	defaultTri.MakeDefaultTriangle();
+
+	vikingHouse.LoadModel("base/models/viking_room.obj");
 }
 
 void RenderFrontend::DrawView()
@@ -56,14 +58,8 @@ void RenderFrontend::DrawView()
 	info.proj[1][1] *= -1;
 	backend.SubmitCommand(DRAW_UPDATE_UNIFORM, &info);
 
-	defaultQuad.modelTransform = glm::rotate(glm::mat4(1.0f), time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-	backend.SubmitCommand(DRAW_SUBMIT_GEOMETRY, (void*)&defaultQuad);
-
-	defaultQuad.modelTransform = glm::translate(glm::mat4(1.0f), glm::vec3(0.0f, 0.0f, -1.0f));
-	defaultQuad.modelTransform = glm::rotate(defaultQuad.modelTransform, time * glm::radians(90.0f), glm::vec3(0.0f, 0.0f, 1.0f));
-
-	backend.SubmitCommand(DRAW_SUBMIT_GEOMETRY, (void*)&defaultQuad);
+	vikingHouse.modelTransform = glm::mat4(1.0f);
+	backend.SubmitCommand(DRAW_SUBMIT_GEOMETRY, (void*)&vikingHouse);
 
 	backend.SubmitCommand(DRAW_RENDER_VIEW, NULL);
 }

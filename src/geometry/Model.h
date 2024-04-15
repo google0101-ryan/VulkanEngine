@@ -14,6 +14,8 @@ public:
 	void MakeDefaultTriangle();
 	void MakeDefaultQuad();
 
+	void LoadModel(std::string modelPath);
+
 	void AddAlbedo(std::string texName);
 
 	Texture* GetTexture() {return texture;}
